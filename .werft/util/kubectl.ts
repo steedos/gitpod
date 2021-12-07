@@ -15,13 +15,13 @@ export function setKubectlContextNamespace(namespace: string, shellOpts: ExecOpt
 }
 
 export async function wipePreviewEnvironmentAndNamespace(helmInstallName: string, namespace: string, shellOpts: ExecOptions) {
-    deleteAllWorkspaces(namespace, shellOpts);
-
     // wipe preview envs built with installer
     await wipePreviewEnvironmentInstaller(namespace, shellOpts);
 
     // wipe preview envs previously built with helm
     await wipePreviewEnvironmentHelm(helmInstallName, namespace, shellOpts)
+
+    deleteAllWorkspaces(namespace, shellOpts);
 
     await deleteAllUnnamespacedObjects(namespace, shellOpts);
 
