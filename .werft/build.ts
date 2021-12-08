@@ -427,7 +427,7 @@ export async function deployToDevWithInstaller(deploymentConfig: DeploymentConfi
 
         if (withObservability) {
             // TODO: there's likely more to do...
-            const tracingEndpoint = exec(`yq r ./.werft/values.dev.yaml tracing.endpoint`,{slice: installerSlices.INSTALLER_RENDER}).stdout.trim();
+            const tracingEndpoint = exec(`yq r ./.werft/values.tracing.yaml tracing.endpoint`,{slice: installerSlices.INSTALLER_RENDER}).stdout.trim();
             exec(`yq w -i config.yaml observability.tracing.endpoint ${tracingEndpoint}`, {slice: installerSlices.INSTALLER_RENDER});
         }
 
