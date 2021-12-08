@@ -365,14 +365,8 @@ export async function deployToDevWithInstaller(deploymentConfig: DeploymentConfi
             const auth = exec(`echo -n "_json_key:$(kubectl get secret ${IMAGE_PULL_SECRET_NAME} --namespace=keys -o yaml \
                 | yq r - data['.dockerconfigjson'] \
                 | base64 -d)" | base64 -w 0`, { silent: true }).stdout.trim();
-            fs.writeFileSync(`./${IMAGE_PULL_SECRET_NAME}`,
-            `{
-    "auths": {
-        "eu.gcr.io": {
-            "auth": "${auth}"
-        }
-    }
-}`);
+            const dockerConfig = { auths: { "eu.gcr.io": { auth: auth } } };
+            fs.writeFileSync(`./${IMAGE_PULL_SECRET_NAME}`, JSON.stringify(dockerConfig));
             exec(`kubectl create secret docker-registry ${IMAGE_PULL_SECRET_NAME} -n ${namespace} --from-file=.dockerconfigjson=./${IMAGE_PULL_SECRET_NAME}`);
             werft.done(installerSlices.IMAGE_PULL_SECRET);
         }
