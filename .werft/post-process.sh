@@ -6,7 +6,7 @@
 # 3. fake a license and feature file like so: echo "foo" > /tmp/license && echo '"bar"' > /tmp/defaultFeatureFlags
 # 4. call this script like so: ./.werft/post-process.sh 1234 5678 2 branch-name-dashes-only
 
-set -e
+set -euo pipefail
 
 # Required params
 REG_DAEMON_PORT=$1
