@@ -3,7 +3,8 @@
 # to test this script, follow these steps
 # 1. generate a config like so: ./installer init > config.yaml
 # 2. generate a k8s manifest like so: ./installer render -n $(kubens -c) -c config.yaml > k8s.yaml
-# 3. call this script like so: ./.werft/post-process.sh 1234 5678 2 branch-name-dashes-only
+# 3. fake a license and feature file like so: echo "foo" > /tmp/license && echo '"bar"' > /tmp/defaultFeatureFlags
+# 4. call this script like so: ./.werft/post-process.sh 1234 5678 2 branch-name-dashes-only
 
 set -e
 
@@ -172,10 +173,11 @@ while [ "$i" -le "$DOCS" ]; do
       sed -i "$WS_URL_TEMP_EXPR" /tmp/"$NAME"overrides.yaml
 
       # Change the port we use to connect to registry-facade
-      sed -i -e "/registryFacadeHost/s/3000/$REG_DAEMON_PORT/g" /tmp/"$NAME"overrides.yaml
+      # is expected to be reg.<branch-name-with-dashes>.staging.gitpod-dev.com:$REG_DAEMON_PORT
       # Change the port we use to connect to ws-daemon
-      # get the json string and parse it
+      REGISTRY_FACADE_HOST="reg.$DEV_BRANCH.staging.gitpod-dev.com:$REG_DAEMON_PORT"
       yq r /tmp/"$NAME"overrides.yaml 'data.[config.json]' \
+      | jq --arg REGISTRY_FACADE_HOST "$REGISTRY_FACADE_HOST" '.manager.registryFacadeHost = $REGISTRY_FACADE_HOST' \
       | jq ".manager.wsdaemon.port = $WS_DAEMON_PORT" > /tmp/"$NAME"-cm-overrides.json
       touch /tmp/"$NAME"-cm-overrides.yaml
       # write a yaml file with the json as a multiline string
