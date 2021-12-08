@@ -461,7 +461,6 @@ export async function deployToDevWithInstaller(deploymentConfig: DeploymentConfi
     try {
         werft.log(installerSlices.INSTALLER_POST_PROCESSING, "Let's post process some k8s manifests...");
         const nodepoolIndex = getNodePoolIndex(namespace);
-        exec(`chmod +x ./.werft/post-process.sh`,{slice: installerSlices.INSTALLER_POST_PROCESSING});
 
         if (deploymentConfig.installEELicense) {
             werft.log(installerSlices.INSTALLER_POST_PROCESSING, "Adding the EE License...");
