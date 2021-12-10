@@ -281,9 +281,37 @@ export async function build(context, version) {
         withPayment,
         withObservability,
     };
+
+    const checkForInstalls = "Checking for installations...";
+    werft.phase("predeploy", checkForInstalls);
+    // the context namespace is not set at this point
+    const hasGitpodHelmInstall = exec(`helm status ${helmInstallName} -n ${deploymentConfig.namespace}`, {slice: checkForInstalls, dontCheckRc: true}).code === 0;
+    const hasGitpodInstallerInstall = exec(`kubectl get configmap gitpod-app -n ${deploymentConfig.namespace}`, {slice: checkForInstalls, dontCheckRc: true}).code === 0;
+    werft.log({slice: checkForInstalls}, `has helm install: ${hasGitpodHelmInstall}, has installer install: ${hasGitpodInstallerInstall}`);
+    werft.done(checkForInstalls);
+    werft.done("predeploy");
+
+
     if (withHelm) {
-        await deployToDev(deploymentConfig, workspaceFeatureFlags, dynamicCPULimits, storage);
+        werft.log("deploy", "with-helm was specified.");
+        // you want helm, but left behind a Gitpod Installer installation, force a clean slate
+        if (hasGitpodInstallerInstall && !deploymentConfig.cleanSlateDeployment) {
+            werft.log("deploy", "with-helm was specified, but, `with-clean-slate-deployment=false`, forcing to true.");
+            deploymentConfig.cleanSlateDeployment = true;
+        }
+        await deployToDevWithHelm(deploymentConfig, workspaceFeatureFlags, dynamicCPULimits, storage);
+    } // scenario: you pushed code to an existing preview environment built with Helm, and didn't with-clean-slate-deployment=true'
+    else if (hasGitpodHelmInstall && !deploymentConfig.cleanSlateDeployment) {
+        werft.log("deploy", "with-helm was not specified, but, a Helm installation exists, and this is not a clean slate deployment.");
+        werft.log("deploy", "Please set 'with-clean-slate-deployment=true' if you wish to remove a Helm install and use the Installer.");
+        await deployToDevWithHelm(deploymentConfig, workspaceFeatureFlags, dynamicCPULimits, storage);
     } else {
+        // you get here if
+        // ...it's a new install with no flag overrides or
+        // ...it's an existing install and a Helm install doesn't exist or
+        // ...you have a prexisting Helm install, set 'with-clean-slate-deployment=true', but did not specifiy 'with-helm=true'
+        // Why? The installer is supposed to be a default so we all dog-food it.
+        // But, its new, so this may help folks transition with less issues.
         await deployToDevWithInstaller(deploymentConfig, workspaceFeatureFlags, dynamicCPULimits, storage);
     }
     await triggerIntegrationTests(deploymentConfig.version, deploymentConfig.namespace, context.Owner, !withIntegrationTests)
@@ -481,7 +509,8 @@ export async function deployToDevWithInstaller(deploymentConfig: DeploymentConfi
 
     werft.log(installerSlices.APPLY_INSTALL_MANIFESTS, "Installing preview environment.");
     try {
-        exec(`kubectl apply -f k8s.yaml`,{ slice: installerSlices.APPLY_INSTALL_MANIFESTS });
+        // errors could result in outputing a secret to the werft log when kubernetes patches existing objects...
+        exec(`kubectl apply -f k8s.yaml`,{ slice: installerSlices.APPLY_INSTALL_MANIFESTS, silent: true });
         werft.done(installerSlices.APPLY_INSTALL_MANIFESTS);
     } catch (err) {
         werft.fail(installerSlices.APPLY_INSTALL_MANIFESTS, err);
@@ -548,8 +577,8 @@ export async function deployToDevWithInstaller(deploymentConfig: DeploymentConfi
 /**
  * Deploy dev
  */
-export async function deployToDev(deploymentConfig: DeploymentConfig, workspaceFeatureFlags: string[], dynamicCPULimits, storage) {
-    werft.phase("deploy", "deploying to dev");
+export async function deployToDevWithHelm(deploymentConfig: DeploymentConfig, workspaceFeatureFlags: string[], dynamicCPULimits, storage) {
+    werft.phase("deploy", "deploying to dev with Helm");
     const { version, destname, namespace, domain, monitoringDomain, url } = deploymentConfig;
     const [wsdaemonPortMeta, registryNodePortMeta, nodeExporterPort] = findFreeHostPorts([
         { start: 10000, end: 11000 },
