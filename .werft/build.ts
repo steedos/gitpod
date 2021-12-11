@@ -55,6 +55,7 @@ Tracing.initialize()
 
 // Werft phases
 const phases = {
+    PREDEPLOY: 'predeploy',
     DEPLOY: 'deploy',
     TRIGGER_INTEGRATION_TESTS: 'trigger integration tests',
 }
@@ -282,28 +283,28 @@ export async function build(context, version) {
         withObservability,
     };
 
-    const checkForInstalls = "Checking for installations...";
-    werft.phase("predeploy", checkForInstalls);
+    werft.phase(phases.PREDEPLOY, "Checking for existing installations...");
     // the context namespace is not set at this point
-    const hasGitpodHelmInstall = exec(`helm status ${helmInstallName} -n ${deploymentConfig.namespace}`, {slice: checkForInstalls, dontCheckRc: true}).code === 0;
-    const hasGitpodInstallerInstall = exec(`kubectl get configmap gitpod-app -n ${deploymentConfig.namespace}`, {slice: checkForInstalls, dontCheckRc: true}).code === 0;
-    werft.log({slice: checkForInstalls}, `has helm install: ${hasGitpodHelmInstall}, has installer install: ${hasGitpodInstallerInstall}`);
-    werft.done(checkForInstalls);
-    werft.done("predeploy");
-
+    const hasGitpodHelmInstall = exec(`helm status ${helmInstallName} -n ${deploymentConfig.namespace}`, {slice: "check for Helm install", dontCheckRc: true}).code === 0;
+    const hasGitpodInstallerInstall = exec(`kubectl get configmap gitpod-app -n ${deploymentConfig.namespace}`, {slice: "check for Installer install", dontCheckRc: true}).code === 0;
+    werft.log("result of installation checks", `has Helm install: ${hasGitpodHelmInstall}, has Installer install: ${hasGitpodInstallerInstall}`);
 
     if (withHelm) {
-        werft.log("deploy", "with-helm was specified.");
+        werft.log("using Helm", "with-helm was specified.");
         // you want helm, but left behind a Gitpod Installer installation, force a clean slate
         if (hasGitpodInstallerInstall && !deploymentConfig.cleanSlateDeployment) {
-            werft.log("deploy", "with-helm was specified, but, `with-clean-slate-deployment=false`, forcing to true.");
+            werft.log("warning!", "with-helm was specified, there's an Installer install, but, `with-clean-slate-deployment=false`, forcing to true.");
             deploymentConfig.cleanSlateDeployment = true;
         }
+        werft.done(phases.PREDEPLOY);
+        werft.phase(phases.DEPLOY, "deploying")
         await deployToDevWithHelm(deploymentConfig, workspaceFeatureFlags, dynamicCPULimits, storage);
     } // scenario: you pushed code to an existing preview environment built with Helm, and didn't with-clean-slate-deployment=true'
     else if (hasGitpodHelmInstall && !deploymentConfig.cleanSlateDeployment) {
-        werft.log("deploy", "with-helm was not specified, but, a Helm installation exists, and this is not a clean slate deployment.");
-        werft.log("deploy", "Please set 'with-clean-slate-deployment=true' if you wish to remove a Helm install and use the Installer.");
+        werft.log("using Helm", "with-helm was not specified, but, a Helm installation exists, and this is not a clean slate deployment.");
+        werft.log("tip", "Set 'with-clean-slate-deployment=true' if you wish to remove the Helm install and use the Installer.");
+        werft.done(phases.PREDEPLOY);
+        werft.phase(phases.DEPLOY, "deploying to dev with Helm");
         await deployToDevWithHelm(deploymentConfig, workspaceFeatureFlags, dynamicCPULimits, storage);
     } else {
         // you get here if
@@ -312,6 +313,8 @@ export async function build(context, version) {
         // ...you have a prexisting Helm install, set 'with-clean-slate-deployment=true', but did not specifiy 'with-helm=true'
         // Why? The installer is supposed to be a default so we all dog-food it.
         // But, its new, so this may help folks transition with less issues.
+        werft.done(phases.PREDEPLOY);
+        werft.phase(phases.DEPLOY, "deploying to dev with Installer");
         await deployToDevWithInstaller(deploymentConfig, workspaceFeatureFlags, dynamicCPULimits, storage);
     }
     await triggerIntegrationTests(deploymentConfig.version, deploymentConfig.namespace, context.Owner, !withIntegrationTests)
@@ -338,9 +341,6 @@ interface DeploymentConfig {
 export async function deployToDevWithInstaller(deploymentConfig: DeploymentConfig, workspaceFeatureFlags: string[], dynamicCPULimits, storage) {
     // to test this function, change files in your workspace, sideload (-s) changed files into werft or set annotations (-a) like so:
     // werft run github -f -j ./.werft/build.yaml -s ./.werft/build.ts -s ./.werft/post-process.sh -a with-clean-slate-deployment=true
-
-    werft.phase(phases.DEPLOY, "deploying to dev")
-
     const { version, destname, namespace, domain, monitoringDomain, url, withObservability } = deploymentConfig;
 
     // find free ports
@@ -578,13 +578,17 @@ export async function deployToDevWithInstaller(deploymentConfig: DeploymentConfi
  * Deploy dev
  */
 export async function deployToDevWithHelm(deploymentConfig: DeploymentConfig, workspaceFeatureFlags: string[], dynamicCPULimits, storage) {
-    werft.phase("deploy", "deploying to dev with Helm");
     const { version, destname, namespace, domain, monitoringDomain, url } = deploymentConfig;
+    // find free ports
+    werft.log("find free ports", "Check for some free ports.");
     const [wsdaemonPortMeta, registryNodePortMeta, nodeExporterPort] = findFreeHostPorts([
         { start: 10000, end: 11000 },
         { start: 30000, end: 31000 },
         { start: 31001, end: 32000 },
-    ], metaEnv({ slice: 'hostports' }));
+    ], metaEnv({ slice: "find free ports", silent: true }));
+    werft.log("find free ports",
+        `wsdaemonPortMeta: ${wsdaemonPortMeta}, registryNodePortMeta: ${registryNodePortMeta}, and nodeExporterPort ${nodeExporterPort}.`);
+    werft.done("find free ports");
 
     // trigger certificate issuing
     werft.log('certificate', "organizing a certificate for the preview environment...");
