@@ -109,7 +109,7 @@ branding:
       - name: Blog
         url: https://www.gitpod.io/blog/
       - name: Community
-        url: https://community.gitpod.io/
+        url: https://www.gitpod.io/chat
     footer:
       - name: Docs
         url: https://www.gitpod.io/docs/
@@ -120,8 +120,8 @@ branding:
     social:
       - type: GitHub
         url: https://github.com/gitpod-io/gitpod
-      - type: Discourse
-        url: https://community.gitpod.io/
+      - type: Discord
+        url: https://www.gitpod.io/chat
       - type: Twitter
         url: https://twitter.com/gitpod
     legal:
