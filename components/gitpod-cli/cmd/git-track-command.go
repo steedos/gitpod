@@ -132,11 +132,6 @@ var gitTrackCommand = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(gitTrackCommand)
-	gitTokenValidator.Flags().StringVarP(&gitTokenValidatorOpts.User, "user", "u", "", "Git user")
-	gitTokenValidator.Flags().StringVarP(&gitTokenValidatorOpts.Token, "token", "t", "", "The Git token to be validated")
-	gitTokenValidator.Flags().StringVarP(&gitTokenValidatorOpts.TokenScopes, "scopes", "s", "", "A comma spearated list of the scopes of given token")
-	gitTokenValidator.Flags().StringVar(&gitTokenValidatorOpts.Host, "host", "", "The Git host")
-	gitTokenValidator.Flags().StringVarP(&gitTokenValidatorOpts.RepoURL, "repoURL", "r", "", "The URL of the Git repository")
-	gitTokenValidator.Flags().StringVarP(&gitTokenValidatorOpts.GitCommand, "gitCommand", "c", "", "The Git command to be performed")
+	gitTokenValidator.Flags().StringVarP(&gitTokenValidatorOpts.GitCommand, "gitCommand", "c", "", "The Git command to be recorded")
 	gitTokenValidator.MarkFlagRequired("gitCommand")
 }
