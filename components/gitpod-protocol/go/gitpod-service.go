@@ -82,7 +82,7 @@ type APIInterface interface {
 	InstallUserPlugins(ctx context.Context, params *InstallPluginsParams) (res bool, err error)
 	UninstallUserPlugin(ctx context.Context, params *UninstallPluginParams) (res bool, err error)
 	GuessGitTokenScopes(ctx context.Context, params *GuessGitTokenScopesParams) (res *GuessedGitTokenScopes, err error)
-	// TODO add TrackEvent, see https://github.com/gitpod-io/gitpod/blob/7305418f21bcb421cc14d29c1eaa889142159aff/components/gitpod-protocol/src/gitpod-service.ts#L237
+    TrackEvent(ctx context.Context, event *GitCommandEventParams) (err error)
 
 	InstanceUpdates(ctx context.Context, instanceID string) (<-chan *WorkspaceInstance, error)
 }
@@ -2023,6 +2023,18 @@ type GitToken struct {
 type GuessedGitTokenScopes struct {
 	Scopes  []string `json:"scopes,omitempty"`
 	Message string   `json:"message,omitempty"`
+}
+
+type EventParams struct {
+	command string
+	workspaceId string
+	workspaceInstanceId string
+	timestamp int
+}
+
+type GitCommandEventParams struct {
+	event_name string;
+	parameters EventParams
 }
 
 // BrandingLink is the BrandingLink message type
