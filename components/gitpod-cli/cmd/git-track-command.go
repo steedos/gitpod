@@ -26,9 +26,9 @@ var gitTrackCommandOpts struct {
 }
 
 var gitTrackCommand = &cobra.Command{
-	Use:    "git-token-validator",
-	Short:  "Gitpod's Git token validator",
-	Long:   "Tries to guess the scopes needed for a git operation and requests an appropriate token.",
+	Use:    "git-track-command",
+	Short:  "Gitpod's Git command tracker",
+	Long:   "Sending anonymous statistics about the executed git commands inside ",
 	Args:   cobra.ExactArgs(0),
 	Hidden: true,
 	Run: func(cmd *cobra.Command, args []string) {
