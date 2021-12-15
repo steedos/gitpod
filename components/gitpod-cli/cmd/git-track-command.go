@@ -39,7 +39,7 @@ var gitTrackCommand = &cobra.Command{
 			log.SetOutput(f)
 		}
 
-		log.Infof("gp git-token-validator")
+		log.Infof("gp git-track-command")
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 		defer cancel()
@@ -117,7 +117,7 @@ var gitTrackCommand = &cobra.Command{
 		if len(guessedTokenScopes.Scopes) > 0 {
 			_, err = supervisor.NewTokenServiceClient(supervisorConn).GetToken(ctx,
 				&supervisor.GetTokenRequest{
-					Host:        gitTrackCommand.Host,
+					Host:        gitTrackCommandOpts.GitCommand,
 					Scope:       guessedTokenScopes.Scopes,
 					Description: "",
 					Kind:        "git",
@@ -131,7 +131,7 @@ var gitTrackCommand = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(gitTokenValidator)
+	rootCmd.AddCommand(gitTrackCommand)
 	gitTokenValidator.Flags().StringVarP(&gitTokenValidatorOpts.User, "user", "u", "", "Git user")
 	gitTokenValidator.Flags().StringVarP(&gitTokenValidatorOpts.Token, "token", "t", "", "The Git token to be validated")
 	gitTokenValidator.Flags().StringVarP(&gitTokenValidatorOpts.TokenScopes, "scopes", "s", "", "A comma spearated list of the scopes of given token")
