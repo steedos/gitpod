@@ -71,13 +71,13 @@ var gitTrackCommand = &cobra.Command{
 			log.WithError(err).Fatal("error connecting to server")
 		}
 		params := &serverapi.EventParams{
-			Command: gitTrackCommandOpts.GitCommand,
-			WorkspaceId: "test",
+			Command:             gitTrackCommandOpts.GitCommand,
+			WorkspaceId:         "test",
 			WorkspaceInstanceId: "test",
-			Timestamp: time.Now().Unix(),
+			Timestamp:           time.Now().Unix(),
 		}
 		event := &serverapi.GitCommandEventParams{
-			EventName: "git_command",
+			EventName:  "git_command",
 			Parameters: *params,
 		}
 		log.WithField("command", gitTrackCommandOpts.GitCommand).
