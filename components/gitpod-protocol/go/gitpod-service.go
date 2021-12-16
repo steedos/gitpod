@@ -82,7 +82,7 @@ type APIInterface interface {
 	InstallUserPlugins(ctx context.Context, params *InstallPluginsParams) (res bool, err error)
 	UninstallUserPlugin(ctx context.Context, params *UninstallPluginParams) (res bool, err error)
 	GuessGitTokenScopes(ctx context.Context, params *GuessGitTokenScopesParams) (res *GuessedGitTokenScopes, err error)
-    TrackEvent(ctx context.Context, event *GitCommandEventParams) (err error)
+	TrackEvent(ctx context.Context, event *GitCommandEventParams) (err error)
 
 	InstanceUpdates(ctx context.Context, instanceID string) (<-chan *WorkspaceInstance, error)
 }
@@ -2026,15 +2026,15 @@ type GuessedGitTokenScopes struct {
 }
 
 type EventParams struct {
-	command string
-	workspaceId string
-	workspaceInstanceId string
-	timestamp int
+	Command             string `json:"command,omitempty"`
+	WorkspaceId         string `json:"workspaceId,omitempty"`
+	WorkspaceInstanceId string `json:"workspaceInstanceId,omitempty"`
+	Timestamp           int    `json:"timestamp,omitempty"`
 }
 
 type GitCommandEventParams struct {
-	event_name string;
-	parameters EventParams
+	EventName  string      `json:"event_name,omitempty"`
+	Parameters EventParams `json:"parameters,omitempty"`
 }
 
 // BrandingLink is the BrandingLink message type
