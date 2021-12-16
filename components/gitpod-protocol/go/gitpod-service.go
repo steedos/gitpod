@@ -2043,7 +2043,7 @@ type EventParams struct {
 	Command             string `json:"command,omitempty"`
 	WorkspaceId         string `json:"workspaceId,omitempty"`
 	WorkspaceInstanceId string `json:"workspaceInstanceId,omitempty"`
-	Timestamp           int64    `json:"timestamp,omitempty"`
+	Timestamp           int64  `json:"timestamp,omitempty"`
 }
 
 type GitCommandEventParams struct {
