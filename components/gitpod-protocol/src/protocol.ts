@@ -151,10 +151,19 @@ export interface UserFeatureSettings {
 export const WorkspaceFeatureFlags = { "full_workspace_backup": undefined, "fixed_resources": undefined };
 export type NamedWorkspaceFeatureFlag = keyof (typeof WorkspaceFeatureFlags);
 
+export interface ProjectEnvVarWithValue {
+    id: string;
+    projectId: string;
+    name: string;
+    value: string;
+}
+
+export type ProjectEnvVar = Omit<Project, 'value'>;
+
 export interface UserEnvVarValue {
     id?: string;
     name: string;
-    repositoryPattern: string;
+    repositoryPattern: string; // DEPRECATED: Use ProjectEnvVar instead - https://github.com/gitpod-com/gitpod/issues/5322
     value: string;
 }
 export interface UserEnvVar extends UserEnvVarValue {
@@ -163,6 +172,7 @@ export interface UserEnvVar extends UserEnvVarValue {
     deleted?: boolean;
 }
 
+// DEPRECATED: Use ProjectEnvVar instead - https://github.com/gitpod-com/gitpod/issues/5322
 export namespace UserEnvVar {
 
     export function normalizeRepoPattern(pattern: string) {

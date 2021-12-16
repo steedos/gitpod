@@ -56,6 +56,7 @@ import { IDEOptions } from '@gitpod/gitpod-protocol/lib/ide-protocol';
 import { IDEConfigService } from '../ide-config';
 import { PartialProject } from '@gitpod/gitpod-protocol/src/teams-projects-protocol';
 import { ClientMetadata } from '../websocket/websocket-connection-manager';
+import { ProjectEnvVar } from '@gitpod/gitpod-protocol/src/protocol';
 
 // shortcut
 export const traceWI = (ctx: TraceContext, wi: Omit<LogContext, "userId">) => TraceContext.setOWI(ctx, wi);    // userId is already taken care of in WebsocketConnectionManager
@@ -1368,6 +1369,27 @@ export class GitpodServerImpl implements GitpodServerWithTracing, Disposable {
         this.analytics.track({ event: "envvar-deleted", userId });
 
         await this.userDB.deleteEnvVar(envvar);
+    }
+
+    async setProjectEnvironmentVariable(ctx: TraceContext, projectId: string, name: string, value: string): Promise<void> {
+        traceAPIParams(ctx, { projectId, name }); // value may contain secrets
+        const user = this.checkAndBlockUser("setProjectEnvironmentVariable");
+        await this.guardProjectOperation(user, projectId, "update");
+        return this.projectsService.setProjectEnvironmentVariable(projectId, name, value);
+    }
+
+    async getProjectEnvironmentVariables(ctx: TraceContext, projectId: string): Promise<ProjectEnvVar[]> {
+        traceAPIParams(ctx, { projectId });
+        const user = this.checkAndBlockUser("getProjectEnvironmentVariables");
+        await this.guardProjectOperation(user, projectId, "get");
+        return this.projectsService.getProjectEnvironmentVariables(projectId);
+    }
+
+    async deleteProjectEnvironmentVariable(ctx: TraceContext, projectId: string, name: string): Promise<void> {
+        traceAPIParams(ctx, { projectId, name });
+        const user = this.checkAndBlockUser("deleteProjectEnvironmentVariable");
+        await this.guardProjectOperation(user, projectId, "update");
+        return this.projectsService.deleteProjectEnvironmentVariable(projectId, name);
     }
 
     protected async guardTeamOperation(teamId: string | undefined, op: ResourceAccessOp): Promise<void> {
