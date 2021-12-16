@@ -6,10 +6,8 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -58,7 +56,7 @@ var gitTrackCommand = &cobra.Command{
 			Host: wsinfo.GitpodApi.Host,
 			Kind: "gitpod",
 			Scope: []string{
-				"function:guessGitTokenScopes",
+				"function:trackEvent",
 			},
 		})
 		if err != nil {
@@ -80,48 +78,14 @@ var gitTrackCommand = &cobra.Command{
 		}
 		event := &serverapi.GitCommandEventParams{
 			EventName: "git_command",
-			Parameters: params,
+			Parameters: *params,
 		}
 		log.WithField("command", gitTrackCommandOpts.GitCommand).
 			Info("tracking the GitCommand event")
 
-		guessedTokenScopes, err := client.TrackEvent(ctx, event)
+		err = client.TrackEvent(ctx, event)
 		if err != nil {
 			log.WithError(err).Fatal("error tracking git event")
-		}
-		if guessedTokenScopes.Message != "" {
-			message := fmt.Sprintf("%s Please grant the necessary permissions.", guessedTokenScopes.Message)
-			log.WithField("guessedTokenScopes", guessedTokenScopes.Scopes).Info("insufficient permissions")
-			result, err := supervisor.NewNotificationServiceClient(supervisorConn).Notify(ctx,
-				&supervisor.NotifyRequest{
-					Level:   supervisor.NotifyRequest_INFO,
-					Message: message,
-					Actions: []string{"Open Access Control"},
-				})
-			if err != nil {
-				log.WithError(err).Fatalf("error notifying client: '%s'", message)
-			}
-			if result.Action == "Open Access Control" {
-				cmd := exec.Command("/proc/self/exe", "preview", "--external", wsinfo.GetGitpodHost()+"/access-control")
-				err := cmd.Run()
-				if err != nil {
-					log.WithError(err).Fatalf("error opening access-control: '%s'", message)
-				}
-			}
-			return
-		}
-		if len(guessedTokenScopes.Scopes) > 0 {
-			_, err = supervisor.NewTokenServiceClient(supervisorConn).GetToken(ctx,
-				&supervisor.GetTokenRequest{
-					Host:        gitTrackCommandOpts.GitCommand,
-					Scope:       guessedTokenScopes.Scopes,
-					Description: "",
-					Kind:        "git",
-				})
-			if err != nil {
-				log.WithError(err).Fatal("error getting new token from token service")
-				return
-			}
 		}
 	},
 }
