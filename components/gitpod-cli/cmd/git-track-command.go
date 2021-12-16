@@ -22,7 +22,7 @@ import (
 )
 
 var gitTrackCommandOpts struct {
-	GitCommand  string
+	GitCommand string
 }
 
 var gitTrackCommand = &cobra.Command{
