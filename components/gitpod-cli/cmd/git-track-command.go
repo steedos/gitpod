@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -73,12 +72,20 @@ var gitTrackCommand = &cobra.Command{
 		if err != nil {
 			log.WithError(err).Fatal("error connecting to server")
 		}
-		params := &serverapi.TrackEvent{
-			GitCommand: gitTrackCommandOpts.GitCommand,
+		params := &serverapi.EventParams{
+			Command: gitTrackCommandOpts.GitCommand,
+			WorkspaceId: "test",
+			WorkspaceInstanceId: "test",
+			Timestamp: time.Now().Unix(),
+		}
+		event := &serverapi.GitCommandEventParams{
+			EventName: "git_command",
+			Parameters: params,
 		}
 		log.WithField("command", gitTrackCommandOpts.GitCommand).
 			Info("tracking the GitCommand event")
-		guessedTokenScopes, err := client.GuessGitTokenScopes(ctx, params)
+
+		guessedTokenScopes, err := client.TrackEvent(ctx, event)
 		if err != nil {
 			log.WithError(err).Fatal("error tracking git event")
 		}

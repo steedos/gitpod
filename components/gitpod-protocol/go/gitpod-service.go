@@ -205,6 +205,8 @@ const (
 	FunctionUninstallUserPlugin FunctionName = "uninstallUserPlugin"
 	// FunctionGuessGitTokenScopes is the name of the guessGitTokenScopes function
 	FunctionGuessGitTokenScope FunctionName = "guessGitTokenScopes"
+	// FunctionTrackEvent is the name of the trackEvent function
+	FunctionTrackEvent FunctionName = "trackEvent"
 
 	// FunctionOnInstanceUpdate is the name of the onInstanceUpdate callback function
 	FunctionOnInstanceUpdate = "onInstanceUpdate"
@@ -1454,6 +1456,18 @@ func (gp *APIoverJSONRPC) GuessGitTokenScopes(ctx context.Context, params *Guess
 	return
 }
 
+// TrackEvent calls trackEvent on the server
+func (gp *APIoverJSONRPC) TrackEvent(ctx context.Context, params *GitCommandEventParams) (err error) {
+	if gp == nil {
+		err = errNotConnected
+		return
+	}
+
+	var result GuessedGitTokenScopes
+	err = gp.C.Call(ctx, "trackEvent", params, &result)
+	return
+}
+
 // PermissionName is the name of a permission
 type PermissionName string
 
@@ -2029,7 +2043,7 @@ type EventParams struct {
 	Command             string `json:"command,omitempty"`
 	WorkspaceId         string `json:"workspaceId,omitempty"`
 	WorkspaceInstanceId string `json:"workspaceInstanceId,omitempty"`
-	Timestamp           int    `json:"timestamp,omitempty"`
+	Timestamp           int64    `json:"timestamp,omitempty"`
 }
 
 type GitCommandEventParams struct {
