@@ -73,25 +73,14 @@ var gitTrackCommand = &cobra.Command{
 		if err != nil {
 			log.WithError(err).Fatal("error connecting to server")
 		}
-		params := &serverapi.GuessGitTokenScopesParams{
-			Host:       gitTokenValidatorOpts.Host,
-			RepoURL:    gitTokenValidatorOpts.RepoURL,
-			GitCommand: gitTokenValidatorOpts.GitCommand,
-			CurrentToken: &serverapi.GitToken{
-				Token:  gitTokenValidatorOpts.Token,
-				Scopes: strings.Split(gitTokenValidatorOpts.TokenScopes, ","),
-				User:   gitTokenValidatorOpts.User,
-			},
+		params := &serverapi.TrackEvent{
+			GitCommand: gitTrackCommandOpts.GitCommand,
 		}
-		log.WithField("host", gitTokenValidatorOpts.Host).
-			WithField("repoURL", gitTokenValidatorOpts.RepoURL).
-			WithField("command", gitTokenValidatorOpts.GitCommand).
-			WithField("user", gitTokenValidatorOpts.User).
-			WithField("tokenScopes", gitTokenValidatorOpts.TokenScopes).
-			Info("guessing required token scopes")
+		log.WithField("command", gitTrackCommandOpts.GitCommand).
+			Info("tracking the GitCommand event")
 		guessedTokenScopes, err := client.GuessGitTokenScopes(ctx, params)
 		if err != nil {
-			log.WithError(err).Fatal("error guessing token scopes on server")
+			log.WithError(err).Fatal("error tracking git event")
 		}
 		if guessedTokenScopes.Message != "" {
 			message := fmt.Sprintf("%s Please grant the necessary permissions.", guessedTokenScopes.Message)
