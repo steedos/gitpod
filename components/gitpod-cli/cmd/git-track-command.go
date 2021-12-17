@@ -92,6 +92,6 @@ var gitTrackCommand = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(gitTrackCommand)
-	gitTokenValidator.Flags().StringVarP(&gitTokenValidatorOpts.GitCommand, "gitCommand", "c", "", "The Git command to be recorded")
+	gitTokenValidator.Flags().StringVarP(&gitTrackCommandOpts.GitCommand, "gitCommand", "c", "", "The Git command to be recorded")
 	gitTokenValidator.MarkFlagRequired("gitCommand")
 }
