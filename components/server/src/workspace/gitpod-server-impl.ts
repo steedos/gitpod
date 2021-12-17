@@ -15,6 +15,7 @@ import { ErrorCodes } from '@gitpod/gitpod-protocol/lib/messaging/error';
 import { GithubUpgradeURL, PlanCoupon } from "@gitpod/gitpod-protocol/lib/payment-protocol";
 import { TeamSubscription, TeamSubscriptionSlot, TeamSubscriptionSlotResolved } from "@gitpod/gitpod-protocol/lib/team-subscription-protocol";
 import { Cancelable } from '@gitpod/gitpod-protocol/lib/util/cancelable';
+import { censor } from '@gitpod/gitpod-protocol/lib/util/censor';
 import { log, LogContext } from '@gitpod/gitpod-protocol/lib/util/logging';
 import { InterfaceWithTraceContext, TraceContext } from '@gitpod/gitpod-protocol/lib/util/tracing';
 import { IdentifyMessage, PageMessage, RemoteIdentifyMessage, RemotePageMessage, RemoteTrackMessage, TrackMessage } from '@gitpod/gitpod-protocol/lib/analytics';
@@ -59,8 +60,6 @@ import { ClientMetadata } from '../websocket/websocket-connection-manager';
 // shortcut
 export const traceWI = (ctx: TraceContext, wi: Omit<LogContext, "userId">) => TraceContext.setOWI(ctx, wi);    // userId is already taken care of in WebsocketConnectionManager
 export const traceAPIParams = (ctx: TraceContext, params: { [key: string]: any }) => TraceContext.addJsonRPCParameters(ctx, params);
-export function censor<T>(obj: T, k: keyof T): T { const r = { ...obj }; delete (r as any)[k]; return r; }
-
 
 export type GitpodServerWithTracing = InterfaceWithTraceContext<GitpodServer>;
 
