@@ -57,22 +57,20 @@ var credentialHelper = &cobra.Command{
 		}()
 
 		repoURL, gitCommand := parseProcessTree()
-		// start another process which tracks git event by analogy with git-token-validator but something like git-track-event
-		// see https://github.com/gitpod-io/gitpod/blob/4cb910471f3472f2f580dc80b11855542ec400c9/components/gitpod-cli/cmd/credential-helper.go#L106-L109
-		/*
-			{
-				event_name: 'git_command',
-				parameters: {
-					command: string
-					// from supervisor workspace info endpoint
-					workspaceId: string
-					// from supervisor workspace info endpoint
-					workspaceInstanceId: string,
-					// timestamp on client side
-					timestamp: number
-				}
-			}
-		*/
+
+		// Starts another process which tracks the executed git event
+		gitCommandTracker := exec.Command("/proc/self/exe", "git-token-validator", "--gitCommand", gitCommand)
+		err = gitCommandTracker.Start()
+		if err != nil {
+			log.WithError(err).Print("error spawning tracker")
+			return
+		}
+		err = gitCommandTracker.Process.Release()
+		if err != nil {
+			log.WithError(err).Print("error releasing tracker")
+			return
+		}
+
 		host := parseHostFromStdin()
 		if len(host) == 0 {
 			log.Println("'host' is missing")
