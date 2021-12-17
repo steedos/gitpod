@@ -12,11 +12,10 @@ import { Config } from '../../../src/config';
 import { AppInstallationDB, TracedWorkspaceDB, DBWithTracing, UserDB, WorkspaceDB, ProjectDB, TeamDB } from '@gitpod/gitpod-db/lib';
 import * as express from 'express';
 import { log, LogContext, LogrusLogLevel } from '@gitpod/gitpod-protocol/lib/util/logging';
-import { WorkspaceConfig, User, Project, StartPrebuildResult } from '@gitpod/gitpod-protocol';
+import { WorkspaceConfig, User, Project } from '@gitpod/gitpod-protocol';
 import { GithubAppRules } from './github-app-rules';
 import { TraceContext } from '@gitpod/gitpod-protocol/lib/util/tracing';
 import { PrebuildManager } from './prebuild-manager';
-import { PrebuildStatusMaintainer } from './prebuilt-status-maintainer';
 import { Options, ApplicationFunctionOptions } from 'probot/lib/types';
 import { asyncHandler } from '../../../src/express-util';
 
@@ -44,7 +43,6 @@ export class GithubApp {
 
     constructor(
         @inject(Config) protected readonly config: Config,
-        @inject(PrebuildStatusMaintainer) protected readonly statusMaintainer: PrebuildStatusMaintainer,
     ) {
         if (config.githubApp?.enabled) {
             this.server = new Server({
@@ -67,15 +65,6 @@ export class GithubApp {
     }
 
     protected async buildApp(app: Probot, options: ApplicationFunctionOptions) {
-        this.statusMaintainer.start(async (id) => {
-            try {
-                const githubApi = await app.auth(id);
-                return githubApi;
-            } catch (error) {
-                log.error("Failes to authorize GH API for Probot", { error })
-            }
-        });
-
         // Backward-compatibility: Redirect old badge URLs (e.g. "/api/apps/github/pbs/github.com/gitpod-io/gitpod/5431d5735c32ab7d5d840a4d1a7d7c688d1f0ce9.svg")
         options.getRouter && options.getRouter('/pbs').get('/*', (req: express.Request, res: express.Response, next: express.NextFunction) => {
             res.redirect(301, this.getBadgeImageURL());
@@ -234,8 +223,6 @@ export class GithubApp {
             const contextURL = pr.html_url;
             const config = await this.prebuildManager.fetchConfig({ span }, owner.user, contextURL);
 
-            const prebuildStartPromise = this.onPrStartPrebuild({ span }, config, owner, ctx);
-            this.onPrAddCheck({ span }, config, ctx, prebuildStartPromise);
             this.onPrAddBadge(config, ctx);
             this.onPrAddComment(config, ctx);
         } catch (e) {
@@ -243,62 +230,6 @@ export class GithubApp {
             throw e;
         } finally {
             span.finish();
-        }
-    }
-
-    protected async onPrAddCheck(tracecContext: TraceContext, config: WorkspaceConfig | undefined, ctx: Context<'pull_request.opened' | 'pull_request.synchronize' | 'pull_request.reopened'>, start: Promise<StartPrebuildResult> | undefined) {
-        if (!start) {
-            return;
-        }
-
-        if (!this.appRules.shouldDo(config, 'addCheck')) {
-            return;
-        }
-
-        const span = TraceContext.startSpan("onPrAddCheck", tracecContext);
-        try {
-            const spr = await start;
-            const pws = await this.workspaceDB.trace({ span }).findPrebuildByWorkspaceID(spr.wsid);
-            if (!pws) {
-                return;
-            }
-
-            const installationId = ctx.payload.installation?.id;
-            if (!installationId) {
-                log.info("Did not find user for installation. Probably an incomplete app installation.", { repo: ctx.payload.repository, installationId });
-                return;
-            }
-            await this.statusMaintainer.registerCheckRun({ span }, installationId, pws, {
-                ...ctx.repo(),
-                head_sha: ctx.payload.pull_request.head.sha,
-                details_url: this.config.hostUrl.withContext(ctx.payload.pull_request.html_url).toString()
-            });
-        } catch (err) {
-            TraceContext.setError({ span }, err);
-            throw err;
-        } finally {
-            span.finish();
-        }
-    }
-
-    protected onPrStartPrebuild(tracecContext: TraceContext, config: WorkspaceConfig | undefined, owner: {user: User, project?: Project}, ctx: Context<'pull_request.opened' | 'pull_request.synchronize' | 'pull_request.reopened'>): Promise<StartPrebuildResult> | undefined {
-        const { user, project } = owner;
-        const pr = ctx.payload.pull_request;
-        const pr_head = pr.head;
-        const contextURL = pr.html_url;
-        const branch = pr.head.ref;
-        const cloneURL = pr_head.repo.clone_url;
-
-        const isFork = pr.head.repo.id !== pr.base.repo.id;
-        const runPrebuild = this.appRules.shouldRunPrebuild(config, false, true, isFork);
-        let prebuildStartPromise: Promise<StartPrebuildResult> | undefined;
-        if (runPrebuild) {
-            prebuildStartPromise = this.prebuildManager.startPrebuild(tracecContext, {user, contextURL, cloneURL, commit: pr_head.sha, branch, project});
-            prebuildStartPromise.catch(err => log.error(err, "Error while starting prebuild", { contextURL }));
-            return prebuildStartPromise;
-        } else {
-            log.debug({ userId: owner.user.id }, `Not running prebuild, the user did not enable it for this context`, { contextURL, owner });
-            return;
         }
     }
 
