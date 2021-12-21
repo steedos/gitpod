@@ -2,7 +2,7 @@
 # Licensed under the GNU Affero General Public License (AGPL).
 # See License-AGPL.txt in the project root for license information.
 
-FROM gitpod/workspace-full:latest
+FROM europe-docker.pkg.dev/workspace-base-images/workspace-base-images/images:full
 
 ENV TRIGGER_REBUILD 16
 
