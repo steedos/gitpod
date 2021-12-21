@@ -1463,8 +1463,7 @@ func (gp *APIoverJSONRPC) TrackEvent(ctx context.Context, params *GitCommandEven
 		return
 	}
 
-	var result GuessedGitTokenScopes
-	err = gp.C.Call(ctx, "trackEvent", params, &result)
+	err = gp.C.Call(ctx, "trackEvent", params, nil)
 	return
 }
 
