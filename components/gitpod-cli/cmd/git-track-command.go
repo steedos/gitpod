@@ -41,12 +41,12 @@ var gitTrackCommand = &cobra.Command{
 		defer cancel()
 		wsInfo, err := gitpod.GetWSInfo(ctx)
 		if err != nil {
-            fail(err.Error())
-        }
+			fail(err.Error())
+		}
 
-        client, err := gitpod.ConnectToServer(ctx, wsInfo, []string{
-            "function:trackEvent",
-        })
+		client, err := gitpod.ConnectToServer(ctx, wsInfo, []string{
+			"function:trackEvent",
+		})
 
 		if err != nil {
 			log.WithError(err).Fatal("error connecting to supervisor")
