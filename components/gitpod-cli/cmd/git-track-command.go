@@ -12,10 +12,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
 
+	gitpod "github.com/gitpod-io/gitpod/gitpod-cli/pkg/gitpod"
 	serverapi "github.com/gitpod-io/gitpod/gitpod-protocol"
-	supervisor "github.com/gitpod-io/gitpod/supervisor/api"
 )
 
 var gitTrackCommandOpts struct {
@@ -40,40 +39,23 @@ var gitTrackCommand = &cobra.Command{
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 		defer cancel()
-		supervisorAddr := os.Getenv("SUPERVISOR_ADDR")
-		if supervisorAddr == "" {
-			supervisorAddr = "localhost:22999"
-		}
-		supervisorConn, err := grpc.Dial(supervisorAddr, grpc.WithInsecure())
+		wsInfo, err := gitpod.GetWSInfo(ctx)
+		if err != nil {
+            fail(err.Error())
+        }
+
+        client, err := gitpod.ConnectToServer(ctx, wsInfo, []string{
+            "function:trackEvent",
+        })
+
 		if err != nil {
 			log.WithError(err).Fatal("error connecting to supervisor")
 		}
-		wsinfo, err := supervisor.NewInfoServiceClient(supervisorConn).WorkspaceInfo(ctx, &supervisor.WorkspaceInfoRequest{})
-		if err != nil {
-			log.WithError(err).Fatal("error getting workspace info from supervisor")
-		}
-		clientToken, err := supervisor.NewTokenServiceClient(supervisorConn).GetToken(ctx, &supervisor.GetTokenRequest{
-			Host: wsinfo.GitpodApi.Host,
-			Kind: "gitpod",
-			Scope: []string{
-				"function:trackEvent",
-			},
-		})
-		if err != nil {
-			log.WithError(err).Fatal("error getting token from supervisor")
-		}
-		client, err := serverapi.ConnectToServer(wsinfo.GitpodApi.Endpoint, serverapi.ConnectToServerOpts{
-			Token:   clientToken.Token,
-			Context: ctx,
-			Log:     log.NewEntry(log.StandardLogger()),
-		})
-		if err != nil {
-			log.WithError(err).Fatal("error connecting to server")
-		}
+
 		params := &serverapi.EventParams{
 			Command:             gitTrackCommandOpts.GitCommand,
-			WorkspaceId:         "test",
-			WorkspaceInstanceId: "test",
+			WorkspaceId:         wsInfo.WorkspaceId,
+			WorkspaceInstanceId: wsInfo.InstanceId,
 			Timestamp:           time.Now().Unix(),
 		}
 		event := &serverapi.GitCommandEventParams{
