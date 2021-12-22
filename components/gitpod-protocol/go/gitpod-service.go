@@ -1462,9 +1462,9 @@ func (gp *APIoverJSONRPC) TrackEvent(ctx context.Context, params *EventParams) (
 		err = errNotConnected
 		return
 	}
-    var _params []interface{}
+	var _params []interface{}
 
-    _params = append(_params, params)
+	_params = append(_params, params)
 	err = gp.C.Call(ctx, "trackEvent", _params, nil)
 	return
 }
@@ -2048,7 +2048,7 @@ type GitEventParams struct {
 }
 
 type EventParams struct {
-	EventName  string      `json:"event_name,omitempty"`
+	EventName string `json:"event_name,omitempty"`
 	// For now the only trackable event is `git_command`.
 	Parameters GitEventParams `json:"parameters,omitempty"`
 }
