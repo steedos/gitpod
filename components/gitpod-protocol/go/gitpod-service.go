@@ -82,7 +82,7 @@ type APIInterface interface {
 	InstallUserPlugins(ctx context.Context, params *InstallPluginsParams) (res bool, err error)
 	UninstallUserPlugin(ctx context.Context, params *UninstallPluginParams) (res bool, err error)
 	GuessGitTokenScopes(ctx context.Context, params *GuessGitTokenScopesParams) (res *GuessedGitTokenScopes, err error)
-	TrackEvent(ctx context.Context, event *GitCommandEventParams) (err error)
+	TrackEvent(ctx context.Context, event *EventParams) (err error)
 
 	InstanceUpdates(ctx context.Context, instanceID string) (<-chan *WorkspaceInstance, error)
 }
@@ -1457,13 +1457,15 @@ func (gp *APIoverJSONRPC) GuessGitTokenScopes(ctx context.Context, params *Guess
 }
 
 // TrackEvent calls trackEvent on the server
-func (gp *APIoverJSONRPC) TrackEvent(ctx context.Context, params *GitCommandEventParams) (err error) {
+func (gp *APIoverJSONRPC) TrackEvent(ctx context.Context, params *EventParams) (err error) {
 	if gp == nil {
 		err = errNotConnected
 		return
 	}
+    var _params []interface{}
 
-	err = gp.C.Call(ctx, "trackEvent", params, nil)
+    _params = append(_params, params)
+	err = gp.C.Call(ctx, "trackEvent", _params, nil)
 	return
 }
 
@@ -2038,16 +2040,17 @@ type GuessedGitTokenScopes struct {
 	Message string   `json:"message,omitempty"`
 }
 
-type EventParams struct {
+type GitEventParams struct {
 	Command             string `json:"command,omitempty"`
 	WorkspaceId         string `json:"workspaceId,omitempty"`
 	WorkspaceInstanceId string `json:"workspaceInstanceId,omitempty"`
 	Timestamp           int64  `json:"timestamp,omitempty"`
 }
 
-type GitCommandEventParams struct {
+type EventParams struct {
 	EventName  string      `json:"event_name,omitempty"`
-	Parameters EventParams `json:"parameters,omitempty"`
+	// For now the only trackable event is `git_command`.
+	Parameters GitEventParams `json:"parameters,omitempty"`
 }
 
 // BrandingLink is the BrandingLink message type
