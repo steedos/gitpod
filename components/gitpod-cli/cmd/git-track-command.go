@@ -46,6 +46,7 @@ var gitTrackCommand = &cobra.Command{
 
 		client, err := gitpod.ConnectToServer(ctx, wsInfo, []string{
 			"function:trackEvent",
+			"resource:workspace::" + wsInfo.WorkspaceId + "::get/update",
 		})
 
 		if err != nil {
